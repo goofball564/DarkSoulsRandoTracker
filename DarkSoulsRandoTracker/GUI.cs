@@ -14,8 +14,8 @@ namespace DSItemTracker
     {
         public ItemLayout Layout;
         public DS1Hook Hook = new DS1Hook();
-        public static int RefreshRate = 125;
-        public System.Timers.Timer Timer = new System.Timers.Timer(RefreshRate);
+        public static int RefreshRate = 1500;
+        public System.Timers.Timer Timer = new System.Timers.Timer();
         public Dictionary<int, KeyDisplay> Display = new Dictionary<int, KeyDisplay>();
         public Dictionary<int, string> KeyNames = new Dictionary<int, string>();
         public Dictionary<int, string> RingNames = new Dictionary<int, string>();
@@ -23,6 +23,8 @@ namespace DSItemTracker
         public GUI()
         {
             InitializeComponent();
+
+            Hook.Start();
                 
             if (File.Exists("Default.xml")) ReadLayoutFromXMLFile("Default.xml");
 
@@ -33,22 +35,25 @@ namespace DSItemTracker
 
             void Refresh(object sender, ElapsedEventArgs e)
             {
-                Hook.Refresh();
                 if (!Hook.Hooked)
                 {
                     StatusLabel.Text = "Ready";
                     foreach (var v in Display.Values) v.SetFound(false);
-                    return;
                 }
-                StatusLabel.Text = "Active - " + (Hook.Is64Bit ? "Dark Souls Remastered" : "Dark Souls");
-                var items = Hook.GetInventoryItems().Where(i => i.Quantity > 0);
-                var keys = items.Where(i => i.Category == 4 && KeyNames.Keys.Contains(i.ID));
-                var rings = items.Where(i => i.Category == 2 && RingNames.Keys.Contains(i.ID));
-                var itemIDs = keys.Concat(rings).Select(i => i.ID);
-                foreach (int i in Display.Keys)
+                else
                 {
-                    if (!Display[i].Collected)
-                        Display[i].SetFound(itemIDs.Contains(i));
+                    StatusLabel.Text = "Active - " + (Hook.Is64Bit ? "Dark Souls Remastered" : "Dark Souls");
+                    var itemIDs = Hook.GetInventoryItems().Where(i => ( (i.Quantity > 0) 
+                    && ( (i.Category == 4 && KeyNames.Keys.Contains(i.ID)) || (i.Category == 2 && RingNames.Keys.Contains(i.ID)) )
+                    ) ).Select(i => i.ID);
+                    // var keys = items.Where(i => i.Category == 4 && KeyNames.Keys.Contains(i.ID));
+                    // var rings = items.Where(i => i.Category == 2 && RingNames.Keys.Contains(i.ID));
+                    // var itemIDs = keys.Concat(rings).Select(i => i.ID);
+                    foreach (int i in Display.Keys)
+                    {
+                        if (!Display[i].Collected)
+                            Display[i].SetFound(itemIDs.Contains(i));
+                    }
                 }
             }
 

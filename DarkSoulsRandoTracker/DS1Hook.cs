@@ -7,7 +7,7 @@ namespace DSItemTracker
     {
         private PHPointer InventoryData;
 
-        public DS1Hook() : base(p => p.MainWindowTitle == "DARK SOULS" || p.MainWindowTitle == "DARK SOULS™: REMASTERED", 5000)
+        public DS1Hook() : base(5000, 5000, p => p.MainWindowTitle == "DARK SOULS" || p.MainWindowTitle == "DARK SOULS™: REMASTERED")
         {
             InventoryData = null;
             OnHooked += DS1Hook_OnHooked;
@@ -18,19 +18,20 @@ namespace DSItemTracker
         {
             if (Is64Bit)
             {
-                InventoryData = RegisterPointer("48 8B 05 ? ? ? ? 48 85 C0 ? ? F3 0F 58 80 AC 00 00 00", 3, true, 0, 0x10, 0x3B8);
+                InventoryData = RegisterRelativeAOB("48 8B 05 ? ? ? ? 48 85 C0 ? ? F3 0F 58 80 AC 00 00 00", 3, 7, 0x0, 0x10, 0x3B8);
                 RescanAOB();
             }
             else
             {
-                InventoryData = RegisterPointer("A1 ? ? ? ? 53 55 8B 6C 24 10 56 8B 70 08 32 DB 85 F6", 1, false, 0, 8, 0x2DC);
+                InventoryData = RegisterAbsoluteAOB("A1 ? ? ? ? 53 55 8B 6C 24 10 56 8B 70 08 32 DB 85 F6", 1, 0, 8, 0x2DC);
                 RescanAOB();
             }
         }
 
         private void DS1Hook_OnUnhooked(object sender, PHEventArgs e)
         {
-            InventoryData = UnregisterPointer(InventoryData);
+            UnregisterAOBPointer((PHPointerAOB)InventoryData);
+            InventoryData = null;
         }
 
         public InventoryItem[] GetInventoryItems()
