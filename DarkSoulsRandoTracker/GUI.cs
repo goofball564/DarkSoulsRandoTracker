@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
 using System.Xml;
+using Timer = System.Windows.Forms.Timer;
 
 namespace DSItemTracker
 {
@@ -14,18 +17,24 @@ namespace DSItemTracker
     {
         public ItemLayout Layout;
         public DS1Hook Hook = new DS1Hook();
-        public static int RefreshRate = 1500;
+        public static int RefreshRate = 100;
         public System.Timers.Timer Timer = new System.Timers.Timer();
         public Dictionary<int, KeyDisplay> Display = new Dictionary<int, KeyDisplay>();
         public Dictionary<int, string> KeyNames = new Dictionary<int, string>();
+        private readonly HashSet<int> _keyIdLookup;
         public Dictionary<int, string> RingNames = new Dictionary<int, string>();
+        private readonly HashSet<int> _ringIdLookup;
+
+        private readonly Timer _timer = new Timer();
 
         public GUI()
         {
             InitializeComponent();
 
-            Hook.Start();
-                
+            _timer.Interval = Hook.RefreshInterval;
+            _timer.Tick += (sender, args) => Hook.Refresh();
+            _timer.Start();
+
             if (File.Exists("Default.xml")) ReadLayoutFromXMLFile("Default.xml");
 
             Timer.AutoReset = true;
@@ -33,33 +42,10 @@ namespace DSItemTracker
             Timer.Elapsed += Refresh;
             Timer.Start();
 
-            void Refresh(object sender, ElapsedEventArgs e)
-            {
-                if (!Hook.Hooked)
-                {
-                    StatusLabel.Text = "Ready";
-                    foreach (var v in Display.Values) v.SetFound(false);
-                }
-                else
-                {
-                    StatusLabel.Text = "Active - " + (Hook.Is64Bit ? "Dark Souls Remastered" : "Dark Souls");
-                    var itemIDs = Hook.GetInventoryItems().Where(i => ( (i.Quantity > 0) 
-                    && ( (i.Category == 4 && KeyNames.Keys.Contains(i.ID)) || (i.Category == 2 && RingNames.Keys.Contains(i.ID)) )
-                    ) ).Select(i => i.ID);
-                    // var keys = items.Where(i => i.Category == 4 && KeyNames.Keys.Contains(i.ID));
-                    // var rings = items.Where(i => i.Category == 2 && RingNames.Keys.Contains(i.ID));
-                    // var itemIDs = keys.Concat(rings).Select(i => i.ID);
-                    foreach (int i in Display.Keys)
-                    {
-                        if (!Display[i].Collected)
-                            Display[i].SetFound(itemIDs.Contains(i));
-                    }
-                }
-            }
-
             RingNames[138] = "Covenant of Artorias";
             RingNames[139] = "Orange Charred Ring";
             RingNames[149] = "Darkmoon Seance Ring";
+            _ringIdLookup = new HashSet<int>( RingNames.Keys );
 
             KeyNames[118] = "Purple Coward's Crystal";
             KeyNames[384] = "Peculiar Doll";
@@ -90,6 +76,33 @@ namespace DSItemTracker
             KeyNames[2503] = "Lord Soul Shard (Seath)";
             KeyNames[2510] = "Lordvessel";
             KeyNames[2520] = "Broken Pendant";
+            _keyIdLookup = new HashSet<int>(KeyNames.Keys);
+
+        }
+
+        private readonly Stopwatch _stopwatch = new Stopwatch();
+        void Refresh(object sender, ElapsedEventArgs e)
+        {
+            if (!Hook.Hooked)
+            {
+                StatusLabel.Text = "Ready";
+                foreach (var v in Display.Values) v.SetFound(false);
+            }
+            else
+            {
+                _stopwatch.Restart();
+                var itemIDs = new HashSet<int>( Hook.GetInventoryItems()
+                                                    .Where( i => i.Quantity > 0
+                                                              && ((i.Category == 4 && _keyIdLookup.Contains( i.ID )) || (i.Category == 2 && _ringIdLookup.Contains( i.ID ))) )
+                                                    .Select( i => i.ID ) );
+                foreach (int i in Display.Keys)
+                {
+                    if (!Display[i].Collected)
+                        Display[i].SetFound(itemIDs.Contains(i));
+                }
+                _stopwatch.Stop();
+                StatusLabel.Text = $"Active - {(Hook.Is64Bit ? "Dark Souls Remastered" : "Dark Souls")} - {_stopwatch.Elapsed.TotalMilliseconds:F3}ms";
+            }
         }
 
         private void configureToolStripMenuItem_Click(object sender, EventArgs e)

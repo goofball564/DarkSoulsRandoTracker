@@ -1,17 +1,22 @@
 ﻿using PropertyHook;
 using System;
+using System.Linq;
+using System.Reflection;
 
 namespace DSItemTracker
 {
     public class DS1Hook : PHook
     {
         private PHPointer InventoryData;
+        private InventoryItem[] _result;
 
         public DS1Hook() : base(5000, 5000, p => p.MainWindowTitle == "DARK SOULS" || p.MainWindowTitle == "DARK SOULS™: REMASTERED")
         {
             InventoryData = null;
             OnHooked += DS1Hook_OnHooked;
             OnUnhooked += DS1Hook_OnUnhooked;
+            _result = Enumerable.Range( 0, 2048 ).Select( i => new InventoryItem( i ) ).ToArray();
+
         }
 
         private void DS1Hook_OnHooked(object sender, PHEventArgs e)
@@ -38,36 +43,37 @@ namespace DSItemTracker
         {
             if (InventoryData == null)
             {
-                return new InventoryItem[0];
+                return Array.Empty<InventoryItem>();
             }
             else
             {
-                var result = new InventoryItem[2048];
                 byte[] bytes = InventoryData.ReadBytes(0, 2048 * 0x1C);
                 for (int i = 0; i < 2048; i++)
                 {
-                    result[i] = new InventoryItem(bytes, i * 0x1C);
+                    _result[i].Read(bytes);
                 }
-                return result;
+                return _result;
             }
         }
     }
 
     public struct InventoryItem
     {
-        public int Category { get; }
+        private readonly int _offset;
 
-        public int ID { get; }
+        public int Category;
 
-        public int Quantity { get; }
+        public int ID;
 
-        public int Unk0C { get; }
+        public int Quantity;
 
-        public int Unk10 { get; }
+        public int Unk0C;
 
-        public int Durability { get; }
+        public int Unk10;
 
-        public int Unk18 { get; }
+        public int Durability;
+
+        public int Unk18;
 
         public InventoryItem(byte[] bytes, int index)
         {
@@ -78,6 +84,26 @@ namespace DSItemTracker
             Unk10 = BitConverter.ToInt32(bytes, index + 0x10);
             Durability = BitConverter.ToInt32(bytes, index + 0x14);
             Unk18 = BitConverter.ToInt32(bytes, index + 0x18);
+            _offset = 0;
+        }
+
+        public InventoryItem( int index )
+        {
+            _offset = index * 0x1c;
+            Category = 0;
+            ID = 0;
+            Quantity = 0;
+            Unk0C = 0;
+            Unk10 = 0;
+            Durability = 0;
+            Unk18 = 0;
+        }       
+
+        public void Read( byte[] bytes )
+        {
+            Category = BitConverter.ToInt32(bytes, _offset + 0x00) >> 28;
+            ID = BitConverter.ToInt32(bytes, _offset + 0x04);
+            Quantity = BitConverter.ToInt32(bytes, _offset + 0x08);
         }
     }
 }
