@@ -7,7 +7,7 @@ using System.Linq;
 using System.Timers;
 using System.Windows.Forms;
 using System.Xml;
-using Timer = System.Windows.Forms.Timer;
+using Timer = System.Timers.Timer;
 
 namespace DSItemTracker
 {
@@ -16,23 +16,24 @@ namespace DSItemTracker
         public ItemLayout Layout;
         public DS1Hook Hook = new DS1Hook();
         public static int RefreshRate = 100;
-        public System.Timers.Timer Timer = new System.Timers.Timer();
+        public Timer Timer = new Timer();
         public Dictionary<int, KeyDisplay> Display = new Dictionary<int, KeyDisplay>();
         public Dictionary<int, string> KeyNames = new Dictionary<int, string>();
         private readonly HashSet<int> _keyIdLookup;
         public Dictionary<int, string> RingNames = new Dictionary<int, string>();
         private readonly HashSet<int> _ringIdLookup;
 
-        private readonly Timer _timer = new Timer();
+        private readonly Timer _hookRefreshTimer = new Timer();
         private readonly Stopwatch _stopwatch = new Stopwatch();
 
         public GUI()
         {
             InitializeComponent();
 
-            _timer.Interval = Hook.RefreshInterval;
-            _timer.Tick += (sender, args) => Hook.Refresh();
-            _timer.Start();
+            _hookRefreshTimer.AutoReset = true;
+            _hookRefreshTimer.Interval = Hook.RefreshInterval;
+            _hookRefreshTimer.Elapsed += ( sender, args ) => Hook.Refresh();
+            _hookRefreshTimer.Start();
 
             if (File.Exists("Default.xml")) ReadLayoutFromXMLFile("Default.xml");
 
