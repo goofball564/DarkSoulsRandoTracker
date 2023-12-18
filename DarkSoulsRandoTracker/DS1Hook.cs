@@ -1,14 +1,13 @@
 ﻿using PropertyHook;
 using System;
 using System.Linq;
-using System.Reflection;
 
 namespace DSItemTracker
 {
     public class DS1Hook : PHook
     {
         private PHPointer InventoryData;
-        private InventoryItem[] _result;
+        private readonly InventoryItem[] _result;
 
         public DS1Hook() : base(5000, 5000, p => p.MainWindowTitle == "DARK SOULS" || p.MainWindowTitle == "DARK SOULS™: REMASTERED")
         {

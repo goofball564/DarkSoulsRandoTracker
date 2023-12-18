@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
 using System.Xml;
@@ -26,6 +24,7 @@ namespace DSItemTracker
         private readonly HashSet<int> _ringIdLookup;
 
         private readonly Timer _timer = new Timer();
+        private readonly Stopwatch _stopwatch = new Stopwatch();
 
         public GUI()
         {
@@ -80,7 +79,6 @@ namespace DSItemTracker
 
         }
 
-        private readonly Stopwatch _stopwatch = new Stopwatch();
         void Refresh(object sender, ElapsedEventArgs e)
         {
             if (!Hook.Hooked)
