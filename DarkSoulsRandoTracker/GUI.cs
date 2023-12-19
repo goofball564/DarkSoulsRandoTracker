@@ -24,7 +24,6 @@ namespace DSItemTracker
         private readonly HashSet<int> _ringIdLookup;
 
         private readonly Timer _hookRefreshTimer = new Timer();
-        private readonly Stopwatch _stopwatch = new Stopwatch();
 
         public GUI()
         {
@@ -89,7 +88,6 @@ namespace DSItemTracker
             }
             else
             {
-                _stopwatch.Restart();
                 var itemIDs = new HashSet<int>( Hook.GetInventoryItems()
                                                     .Where( i => i.Quantity > 0
                                                               && ((i.Category == 4 && _keyIdLookup.Contains( i.ID )) || (i.Category == 2 && _ringIdLookup.Contains( i.ID ))) )
@@ -99,8 +97,7 @@ namespace DSItemTracker
                     if (!Display[i].Collected)
                         Display[i].SetFound(itemIDs.Contains(i));
                 }
-                _stopwatch.Stop();
-                StatusLabel.Text = $"Active - {(Hook.Is64Bit ? "Dark Souls Remastered" : "Dark Souls")} - {_stopwatch.Elapsed.TotalMilliseconds:F3}ms";
+                StatusLabel.Text = "Active - " + (Hook.Is64Bit ? "Dark Souls Remastered" : "Dark Souls");
             }
         }
 
