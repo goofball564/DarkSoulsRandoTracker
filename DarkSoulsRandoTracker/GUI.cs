@@ -15,8 +15,8 @@ namespace DSItemTracker
     {
         public ItemLayout Layout;
         public DS1Hook Hook = new DS1Hook();
-        public static int RefreshRate = 100;
-        public Timer Timer = new Timer();
+        public static int RefreshInterval = 100;
+        public Timer RefreshTimer = new Timer();
         public Dictionary<int, KeyDisplay> Display = new Dictionary<int, KeyDisplay>();
         public Dictionary<int, string> KeyNames = new Dictionary<int, string>();
         private readonly HashSet<int> _keyIdLookup;
@@ -37,10 +37,10 @@ namespace DSItemTracker
 
             if (File.Exists("Default.xml")) ReadLayoutFromXMLFile("Default.xml");
 
-            Timer.AutoReset = true;
-            Timer.Interval = RefreshRate;
-            Timer.Elapsed += Refresh;
-            Timer.Start();
+            RefreshTimer.AutoReset = true;
+            RefreshTimer.Interval = RefreshInterval;
+            RefreshTimer.Elapsed += Refresh;
+            RefreshTimer.Start();
 
             RingNames[138] = "Covenant of Artorias";
             RingNames[139] = "Orange Charred Ring";
